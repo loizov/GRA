@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameMatch - Leaderboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white">
+    <div class="container mx-auto px-4 py-8">
+        <header class="mb-8">
+            <nav class="flex space-x-4">
+                <a href="{{ url_for('index') }}" class="text-blue-400 hover:underline">Главная</a>
+                <a href="{{ url_for('matches') }}" class="text-blue-400 hover:underline">Матчи</a>
+                <a href="{{ url_for('leaderboard') }}" class="text-blue-400 hover:underline">Рейтинг</a>
+                {% if current_user %}
+                    <a href="{{ url_for('profile', user_id=current_user.id) }}" class="text-blue-400 hover:underline">Профиль</a>
+                {% endif %}
+            </nav>
+            <div class="mt-4">
+                {% if current_user %}
+                    <a href="{{ url_for('logout') }}" class="text-blue-400 hover:underline">Выйти</a>
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="text-blue-400 hover:underline">Войти через Steam</a>
+                {% endif %}
+            </div>
+        </header>
+
+        <main>
+            <h1 class="text-3xl font-bold mb-4">Leaderboard</h1>
+            <table class="w-full bg-gray-800 rounded">
+                <thead>
+                    <tr class="bg-gray-700">
+                        <th class="p-2">Rank</th>
+                        <th class="p-2">Player</th>
+                        <th class="p-2">ELO</th>
+                        <th class="p-2">Matches</th>
+                        <th class="p-2">Wins</th>
+                        <th class="p-2">Losses</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for player in players %}
+                        <tr>
+                            <td class="p-2">{{ loop.index }}</td>
+                            <td class="p-2">{{ player.username }}</td>
+                            <td class="p-2">{{ player.elo }}</td>
+                            <td class="p-2">{{ player.matches_played }}</td>
+                            <td class="p-2">{{ player.wins }}</td>
+                            <td class="p-2">{{ player.losses }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </main>
+    </div>
+</body>
+</html>

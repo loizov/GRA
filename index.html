@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameMatch</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/static/socket.io.min.js"></script>
+</head>
+<body class="bg-gray-900 text-white">
+    <div class="container mx-auto px-4 py-8">
+        <header class="mb-8">
+            <h1 class="text-3xl font-bold">GameMatch</h1>
+            <div class="mt-4 flex items-center">
+                <img src="{{ user.avatar_url }}" alt="Avatar" class="w-10 h-10 rounded-full mr-2">
+                <span>{{ user.username }}</span>
+                <a href="{{ url_for('logout') }}" class="ml-4 text-blue-400 hover:underline">Logout</a>
+            </div>
+        </header>
+
+        <main>
+            <section class="mb-8">
+                <h2 class="text-2xl font-semibold mb-4">Matchmaking</h2>
+                <div id="matchmaking-controls">
+                    <a href="{{ url_for('queue') }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded inline-block">Join Queue</a>
+                    <p id="queue-status" class="mt-4"></p>
+                </div>
+            </section>
+
+            <section>
+                <h2 class="text-2xl font-semibold mb-4">Recent Matches</h2>
+                <div id="recent-matches">
+                    <!-- Populated via JavaScript -->
+                </div>
+            </section>
+        </main>
+
+        <footer class="mt-8">
+            <nav class="flex space-x-4">
+                <a href="{{ url_for('index') }}" class="text-blue-400 hover:underline">All Matches</a>
+                <a href="{{ url_for('leaderboard') }}" class="text-blue-400 hover:underline">Leaderboard</a>
+                <a href="{{ url_for('profile', user_id=user.id) }}" class="text-blue-400 hover:underline">Profile</a>
+                <a href="{{ url_for('queue') }}" class="text-blue-400 hover:underline">Queue</a>
+            </nav>
+        </footer>
+    </div>
+
+    <script>
+        const socket = io();
+        socket.on('connect', () => {
+            socket.emit('join_match_room', { match_id: null });
+        });
+
+        socket.on('match_found', (data) => {
+            document.getElementById('queue-status').textContent = 'Match found! Redirecting to queue...';
+            setTimeout(() => window.location.href = '{{ url_for("queue") }}', 1000);
+        });
+
+        socket.on('server_ready', (data) => {
+            document.getElementById('queue-status').textContent = `Server ready: Connect to ${data.server_ip}`;
+        });
+
+        socket.on('match_cancelled', (data) => {
+            document.getElementById('queue-status').textContent = 'Match cancelled: ' + data.reason;
+        });
+
+        // Fetch recent matches
+        fetch('/api/matches').then(response => response.json()).then(matches => {
+            const container = document.getElementById('recent-matches');
+            matches.forEach(match => {
+                const div = document.createElement('div');
+                div.className = 'bg-gray-800 p-4 rounded mb-2';
+                div.innerHTML = `
+                    <p>Match #${match.match_id} - ${match.map_name}</p>
+                    <p>Score: ${match.team1_score} vs ${match.team2_score}</p>
+                    <p>Status: ${match.status}</p>
+                `;
+                container.appendChild(div);
+            });
+        });
+    </script>
+</body>
+</html>

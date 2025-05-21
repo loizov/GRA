@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameMatch - Matches</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white">
+    <div class="container mx-auto px-4 py-8">
+        <header class="mb-8">
+            <nav class="flex space-x-4">
+                <a href="{{ url_for('index') }}" class="text-blue-400 hover:underline">Главная</a>
+                <a href="{{ url_for('matches') }}" class="text-blue-400 hover:underline">Матчи</a>
+                <a href="{{ url_for('leaderboard') }}" class="text-blue-400 hover:underline">Рейтинг</a>
+                {% if current_user %}
+                    <a href="{{ url_for('profile', user_id=current_user.id) }}" class="text-blue-400 hover:underline">Профиль</a>
+                {% endif %}
+            </nav>
+            <div class="mt-4">
+                {% if current_user %}
+                    <a href="{{ url_for('logout') }}" class="text-blue-400 hover:underline">Выйти</a>
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="text-blue-400 hover:underline">Войти через Steam</a>
+                {% endif %}
+            </div>
+        </header>
+
+        <main>
+            <section class="mb-8">
+                <h2 class="text-2xl font-semibold mb-4">Active Matches</h2>
+                {% for match in active_matches %}
+                    <div class="bg-gray-800 p-4 rounded mb-4">
+                        <div class="flex justify-between">
+                            <div>
+                                <span class="text-green-400 font-bold">LIVE</span>
+                                <p>Team 1: {{ match.team1_score }} vs Team 2: {{ match.team2_score }}</p>
+                            </div>
+                            <div class="flex space-x-2">
+                                <a href="{{ url_for('match_details', match_id=match.match_id) }}" class="text-blue-400 hover:underline">Details</a>
+                                {% if match.server_id %}
+                                    <a href="{{ spectate_url }}" class="text-blue-400 hover:underline">Spectate</a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </section>
+
+            <section>
+                <h2 class="text-2xl font-semibold mb-4">Completed Matches</h2>
+                {% for match in completed_matches %}
+                    <div class="bg-gray-800 p-4 rounded mb-4">
+                        <div class="flex justify-between">
+                            <div>
+                                <span class="text-red-400 font-bold">ENDED</span>
+                                <p>Team 1: {{ match.team1_score }} vs Team 2: {{ match.team2_score }}</p>
+                            </div>
+                            <div>
+                                <a href="{{ url_for('match_details', match_id=match.match_id) }}" class="text-blue-400 hover:underline">Details</a>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </section>
+        </main>
+    </div>
+</body>
+</html>

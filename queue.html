@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameMatch - Queue</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/static/socket.io.min.js"></script>
+</head>
+<body class="bg-gray-900 text-white">
+    <div class="container mx-auto px-4 py-8">
+        <header class="mb-8">
+            <nav class="flex space-x-4">
+                <a href="{{ url_for('index') }}" class="text-blue-400 hover:underline">Главная</a>
+                <a href="{{ url_for('matches') }}" class="text-blue-400 hover:underline">Матчи</a>
+                <a href="{{ url_for('leaderboard') }}" class="text-blue-400 hover:underline">Рейтинг</a>
+                <a href="{{ url_for('profile', user_id=user.id) }}" class="text-blue-400 hover:underline">Профиль</a>
+                <a href="{{ url_for('queue') }}" class="text-blue-400 hover:underline">Queue</a>
+            </nav>
+            <div class="mt-4">
+                <a href="{{ url_for('logout') }}" class="text-blue-400 hover:underline">Выйти</a>
+            </div>
+        </header>
+
+        <main>
+            <h1 class="text-3xl font-bold mb-4">Matchmaking Queue</h1>
+            
+            <!-- Five Panels -->
+            <div class="flex space-x-4 justify-center mb-8">
+                <div class="panel bg-gray-800 w-40 h-64 rounded-lg flex items-center justify-center cursor-pointer hover:bg-gray-700" data-panel="1">
+                    <span class="text-red-400 font-bold">Slot 1</span>
+                </div>
+                <div class="panel bg-gray-800 w-40 h-64 rounded-lg flex items-center justify-center cursor-pointer hover:bg-gray-700" data-panel="2">
+                    <span class="text-red-400 font-bold">Slot 2</span>
+                </div>
+                <div class="bg-gray-800 w-40 h-64 rounded-lg flex flex-col items-center justify-center">
+                    <img src="{{ user.avatar_url }}" alt="Avatar" class="w-16 h-16 rounded-full mb-2">
+                    <p class="font-bold">{{ user.username }}</p>
+                    <p class="text-sm">ELO: {{ user.elo }}</p>
+                </div>
+                <div class="panel bg-gray-800 w-40 h-64 rounded-lg flex items-center justify-center cursor-pointer hover:bg-gray-700" data-panel="4">
+                    <span class="text-red-400 font-bold">Slot 4</span>
+                </div>
+                <div class="panel bg-gray-800 w-40 h-64 rounded-lg flex items-center justify-center cursor-pointer hover:bg-gray-700" data-panel="5">
+                    <span class="text-red-400 font-bold">Slot 5</span>
+                </div>
+            </div>
+
+            <!-- Online Users Section (Hidden by Default) -->
+            <section id="online-users" class="hidden bg-gray-800 p-4 rounded mb-8">
+                <h2 class="text-2xl font-semibold mb-4">Online Players</h2>
+                <input type="text" id="search-bar" placeholder="Search players..." class="w-full p-2 mb-4 bg-gray-700 text-white rounded">
+                <div id="players-list">
+                    <!-- Populated via JavaScript -->
+                </div>
+            </section>
+
+            <!-- Notification Area -->
+            <section id="notification" class="hidden bg-gray-800 p-4 rounded mb-8">
+                <p id="notification-text"></p>
+                <button id="accept-invite" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">Join Lobby</button>
+                <button id="decline-invite" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded ml-2">Decline</button>
+            </section>
+
+            <!-- Matchmaking Controls -->
+            <section>
+                <button id="join-queue" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Join Queue</button>
+                <button id="leave-queue" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded hidden">Leave Queue</button>
+                <p id="queue-status" class="mt-4"></p>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const socket = io();
+        let currentUserId = {{ user.id }};
+        let invitedMatchId = null;
+
+        socket.on('connect', () => {
+            socket.emit('join_match_room', { match_id: null });
+            console.log('Connected to SocketIO');
+        });
+
+        // Handle panel clicks to show online users
+        document.querySelectorAll('.panel').forEach(panel => {
+            panel.addEventListener('click', () => {
+                const onlineUsersSection = document.getElementById('online-users');
+                onlineUsersSection.classList.remove('hidden');
+
+                fetchOnlineUsers().catch(error => {
+                    console.error('Error fetching online users:', error);
+                    document.getElementById('players-list').innerHTML = '<p class="text-red-400">Failed to load online players. Check console.</p>';
+                });
+            });
+        });
+
+        // Search bar filtering
+        document.getElementById('search-bar').addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            const players = document.querySelectorAll('#players-list .player');
+            players.forEach(player => {
+                const username = player.querySelector('.username').textContent.toLowerCase();
+                player.style.display = username.includes(searchTerm) ? '' : 'none';
+            });
+        });
+
+        // Fetch online users
+        async function fetchOnlineUsers() {
+            try {
+                const response = await fetch('/api/online_users');
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const users = await response.json();
+                const playersList = document.getElementById('players-list');
+                playersList.innerHTML = '';
+                if (!users.length) {
+                    playersList.innerHTML = '<p class="text-red-400">No online players found.</p>';
+                    return;
+                }
+                users.forEach(user => {
+                    if (user.id !== currentUserId) {
+                        const div = document.createElement('div');
+                        div.className = 'player flex justify-between items-center p-2 bg-gray-700 rounded mb-2';
+                        div.innerHTML = `
+                            <span class="username">${user.username}</span>
+                            <button class="invite-btn bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded" data-user-id="${user.id}">Invite</button>
+                        `;
+                        playersList.appendChild(div);
+                    }
+                });
+
+                document.querySelectorAll('.invite-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const userId = btn.getAttribute('data-user-id');
+                        socket.emit('send_invite', { from_user_id: currentUserId, to_user_id: userId });
+                        console.log(`Invite sent to user ${userId}`);
+                    });
+                });
+            } catch (error) {
+                console.error('Fetch error:', error);
+                throw error;
+            }
+        }
+
+        // Handle receiving an invite
+        socket.on('receive_invite', (data) => {
+            const notification = document.getElementById('notification');
+            const notificationText = document.getElementById('notification-text');
+            notificationText.textContent = `You have been invited to a lobby by ${data.from_username}!`;
+            notification.classList.remove('hidden');
+            invitedMatchId = data.match_id;
+            console.log(`Received invite from ${data.from_username} for match ${data.match_id}`);
+        });
+
+        // Accept invite
+        document.getElementById('accept-invite').addEventListener('click', () => {
+            if (invitedMatchId) {
+                socket.emit('accept_invite', { match_id: invitedMatchId, user_id: currentUserId });
+                document.getElementById('notification').classList.add('hidden');
+                document.getElementById('queue-status').textContent = 'Joined lobby!';
+                console.log(`Accepted invite for match ${invitedMatchId}`);
+            }
+        });
+
+        // Decline invite
+        document.getElementById('decline-invite').addEventListener('click', () => {
+            document.getElementById('notification').classList.add('hidden');
+            invitedMatchId = null;
+            console.log('Invite declined');
+        });
+
+        // Matchmaking queue logic
+        socket.on('match_found', (data) => {
+            document.getElementById('queue-status').textContent = 'Match found! Waiting for players...';
+            document.getElementById('join-queue').classList.add('hidden');
+            document.getElementById('leave-queue').classList.add('hidden');
+            console.log(`Match found: ${data.match_id}`);
+        });
+
+        socket.on('server_ready', (data) => {
+            document.getElementById('queue-status').textContent = `Server ready: Connect to ${data.server_ip}`;
+            console.log(`Server ready at ${data.server_ip}`);
+        });
+
+        socket.on('match_cancelled', (data) => {
+            document.getElementById('queue-status').textContent = 'Match cancelled: ' + data.reason;
+            document.getElementById('join-queue').classList.remove('hidden');
+            document.getElementById('leave-queue').classList.add('hidden');
+            console.log(`Match cancelled: ${data.reason}`);
+        });
+
+        document.getElementById('join-queue').addEventListener('click', () => {
+            fetch('/api/queue/join', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ map: 'random', match_type: 'ranked' })
+            }).then(response => response.json()).then(data => {
+                if (data.status === 'success') {
+                    document.getElementById('queue-status').textContent = 'In queue...';
+                    document.getElementById('join-queue').classList.add('hidden');
+                    document.getElementById('leave-queue').classList.remove('hidden');
+                    console.log('Joined queue successfully');
+                } else {
+                    document.getElementById('queue-status').textContent = data.error;
+                    console.error('Queue join error:', data.error);
+                }
+            }).catch(error => {
+                document.getElementById('queue-status').textContent = 'Error joining queue.';
+                console.error('Join queue error:', error);
+            });
+        });
+
+        document.getElementById('leave-queue').addEventListener('click', () => {
+            fetch('/api/queue/leave', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            }).then(response => response.json()).then(data => {
+                if (data.status === 'success') {
+                    document.getElementById('queue-status').textContent = '';
+                    document.getElementById('join-queue').classList.remove('hidden');
+                    document.getElementById('leave-queue').classList.add('hidden');
+                    console.log('Left queue successfully');
+                } else {
+                    document.getElementById('queue-status').textContent = data.error;
+                    console.error('Queue leave error:', data.error);
+                }
+            }).catch(error => {
+                document.getElementById('queue-status').textContent = 'Error leaving queue.';
+                console.error('Leave queue error:', error);
+            });
+        });
+    </script>
+</body>
+</html>

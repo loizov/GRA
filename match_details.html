@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameMatch - Match Details</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white">
+    <div class="container mx-auto px-4 py-8">
+        <header class="mb-8">
+            <nav class="flex space-x-4">
+                <a href="{{ url_for('index') }}" class="text-blue-400 hover:underline">Главная</a>
+                <a href="{{ url_for('matches') }}" class="text-blue-400 hover:underline">Матчи</a>
+                <a href="{{ url_for('leaderboard') }}" class="text-blue-400 hover:underline">Рейтинг</a>
+                {% if current_user %}
+                    <a href="{{ url_for('profile', user_id=current_user.id) }}" class="text-blue-400 hover:underline">Профиль</a>
+                {% endif %}
+            </nav>
+            <div class="mt-4">
+                {% if current_user %}
+                    <a href="{{ url_for('logout') }}" class="text-blue-400 hover:underline">Выйти</a>
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="text-blue-400 hover:underline">Войти через Steam</a>
+                {% endif %}
+            </div>
+        </header>
+
+        <main>
+            <h1 class="text-3xl font-bold mb-4">Match #{{ match.match_id }}</h1>
+            <section class="mb-8">
+                <h2 class="text-2xl font-semibold mb-4">Match Details</h2>
+                <div class="bg-gray-800 p-4 rounded">
+                    {% if match.status == 'active' and spectate_url %}
+                        <a href="{{ spectate_url }}" class="text-blue-400 hover:underline mb-2 inline-block">Spectate</a>
+                    {% endif %}
+                    <p>Map: {{ match.map_name }}</p>
+                    <p>Status: {{ match.status|capitalize }}</p>
+                    <p>Score: Team 1: {{ match.team1_score }} vs Team 2: {{ match.team2_score }}</p>
+                    <p>Started: {{ match.started_at or 'Not started' }}</p>
+                    {% if match.ended_at %}
+                        <p>Ended: {{ match.ended_at }}</p>
+                    {% endif %}
+                </div>
+            </section>
+
+            <section class="mb-8">
+                <h2 class="text-2xl font-semibold mb-4">Team 1</h2>
+                <table class="w-full bg-gray-800 rounded">
+                    <thead>
+                        <tr class="bg-gray-700">
+                            <th class="p-2">Player</th>
+                            <th class="p-2">Kills</th>
+                            <th class="p-2">Deaths</th>
+                            <th class="p-2">Assists</th>
+                            <th class="p-2">Score</th>
+                            <th class="p-2">ELO Change</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for player in team1_players %}
+                            <tr>
+                                <td class="p-2">{{ player.user.username }}</td>
+                                <td class="p-2">{{ player.kills }}</td>
+                                <td class="p-2">{{ player.deaths }}</td>
+                                <td class="p-2">{{ player.assists }}</td>
+                                <td class="p-2">{{ player.score }}</td>
+                                <td class="p-2">{{ player.elo_change or 0 }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </section>
+
+            <section>
+                <h2 class="text-2xl font-semibold mb-4">Team 2</h2>
+                <table class="w-full bg-gray-800 rounded">
+                    <thead>
+                        <tr class="bg-gray-700">
+                            <th class="p-2">Player</th>
+                            <th class="p-2">Kills</th>
+                            <th class="p-2">Deaths</th>
+                            <th class="p-2">Assists</th>
+                            <th class="p-2">Score</th>
+                            <th class="p-2">ELO Change</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for player in team2_players %}
+                            <tr>
+                                <td class="p-2">{{ player.user.username }}</td>
+                                <td class="p-2">{{ player.kills }}</td>
+                                <td class="p-2">{{ player.deaths }}</td>
+                                <td class="p-2">{{ player.assists }}</td>
+                                <td class="p-2">{{ player.score }}</td>
+                                <td class="p-2">{{ player.elo_change or 0 }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </section>
+        </main>
+    </div>
+</body>
+</html>

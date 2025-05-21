@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameMatch - Profile</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white">
+    <div class="container mx-auto px-4 py-8">
+        <header class="mb-8">
+            <nav class="flex space-x-4">
+                <a href="{{ url_for('index') }}" class="text-blue-400 hover:underline">Главная</a>
+                <a href="{{ url_for('matches') }}" class="text-blue-400 hover:underline">Матчи</a>
+                <a href="{{ url_for('leaderboard') }}" class="text-blue-400 hover:underline">Рейтинг</a>
+                {% if current_user %}
+                    <a href="{{ url_for('profile', user_id=current_user.id) }}" class="text-blue-400 hover:underline">Профиль</a>
+                {% endif %}
+            </nav>
+            <div class="mt-4">
+                {% if current_user %}
+                    <a href="{{ url_for('logout') }}" class="text-blue-400 hover:underline">Выйти</a>
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="text-blue-400 hover:underline">Войти через Steam</a>
+                {% endif %}
+            </div>
+        </header>
+
+        <main>
+            <section class="mb-8">
+                <div class="flex items-center">
+                    <img src="{{ user.avatar_url }}" alt="Avatar" class="w-16 h-16 rounded-full mr-4">
+                    <div>
+                        <h2 class="text-2xl font-bold">{{ user.username }}</h2>
+                        <p>ELO: {{ user.elo }}</p>
+                    </div>
+                </div>
+                <div class="mt-4 flex space-x-4">
+                    <div>
+                        <p class="font-bold">{{ user.matches_played }}</p>
+                        <p>Matches</p>
+                    </div>
+                    <div>
+                        <p class="font-bold">{{ user.wins }}</p>
+                        <p>Wins</p>
+                    </div>
+                    <div>
+                        <p class="font-bold">{{ user.losses }}</p>
+                        <p>Losses</p>
+                    </div>
+                </div>
+            </section>
+
+            <section>
+                <h2 class="text-2xl font-semibold mb-4">Match History</h2>
+                <table class="w-full bg-gray-800 rounded">
+                    <thead>
+                        <tr class="bg-gray-700">
+                            <th class="p-2">Result</th>
+                            <th class="p-2">Map</th>
+                            <th class="p-2">Date</th>
+                            <th class="p-2">ELO Change</th>
+                            <th class="p-2">Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for match in matches %}
+                            <tr>
+                                <td class="p-2">{{ 'Win' if match.elo_change > 0 else 'Loss' if match.elo_change < 0 else 'Draw' }}</td>
+                                <td class="p-2">{{ match.match.map_name }}</td>
+                                <td class="p-2">{{ match.match.ended_at or match.match.created_at }}</td>
+                                <td class="p-2">{{ match.elo_change or 0 }}</td>
+                                <td class="p-2">
+                                    <a href="{{ url_for('match_details', match_id=match.match_id) }}" class="text-blue-400 hover:underline">Details</a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </section>
+        </main>
+    </div>
+</body>
+</html>
